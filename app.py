@@ -72,13 +72,13 @@ def detect_model_type(text):
     return "SIR"
 
 def extract_table(simulation_text, model_type):
-    # Returns dict of {month: [S, E, I, R, V]} (or subset), and lists for each variable
     rows = []
     table_started = False
     variable_order = []
     for line in simulation_text.split('\n'):
         line = line.strip()
-        if line.startswith("Month"):
+        # Accept both "Month" and "Day" as table headers
+        if line.startswith("Month") or line.startswith("Day"):
             headers = re.split(r"\s+", line)
             variable_order = headers[1:]
             table_started = True
@@ -87,7 +87,7 @@ def extract_table(simulation_text, model_type):
             if re.match(r"^\d+\s+\d+", line):
                 cols = re.split(r"\s+", line)
                 try:
-                    month = int(cols[0])
+                    time_idx = int(cols[0])
                     values = []
                     for idx, val in enumerate(cols[1:]):
                         val = val.replace(" ", "")  # Remove unicode thin spaces
@@ -95,24 +95,25 @@ def extract_table(simulation_text, model_type):
                             values.append(int(val))
                         except:
                             values.append(float(val))
-                    rows.append((month, values))
+                    rows.append((time_idx, values))
                 except Exception:
                     continue
             elif line == "" or line.lower().startswith("what the numbers"):
                 break
     # Transpose to lists
     table = {var: [] for var in variable_order}
-    months = []
-    for month, vals in rows:
-        months.append(month)
+    time_points = []
+    for time_idx, vals in rows:
+        time_points.append(time_idx)
         for i, var in enumerate(variable_order):
             if i < len(vals):
                 table[var].append(vals[i])
             else:
                 table[var].append(0)
-    table["Month"] = months
+    # Use correct key for time axis
+    time_key = "Day" if any(l.startswith("Day") for l in simulation_text.split('\n')) else "Month"
+    table[time_key] = time_points
     return table, variable_order
-
 def generate_chart_from_simulation(simulation_text, chart_type="line"):
     model_type = detect_model_type(simulation_text)
     table, variable_order = extract_table(simulation_text, model_type)
