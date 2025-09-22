@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function() {
         msgDiv.className = `msg ${sender}`;
         const msgText = document.createElement("div");
         msgText.className = "msg-text";
-        msgText.innerHTML = content.replace(/\n/g, "<br>");
+       msgText.innerHTML = DOMPurify.sanitize(marked.parse(content));
         msgDiv.appendChild(msgText);
         chatWindow.appendChild(msgDiv);
         chatWindow.scrollTop = chatWindow.scrollHeight;
