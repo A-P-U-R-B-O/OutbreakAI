@@ -1,160 +1,128 @@
 /* Import Google Font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+{
+margin: 0;
+padding: 0;
+box-sizing: border-box;
 }
 
+
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f3f6fa;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  color: #2c3e50;
+font-family: 'Inter', sans-serif;
+background-color: #f3f6fa;
+display: flex;
+flex-direction: column;
+height: 100vh;
+color: #2c3e50;
 }
 
 /* Header styles */
 header {
-  background-color: #2c3e50;
-  color: white;
-  text-align: center;
-  padding: 1.5rem 1rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+background-color: #2c3e50;
+color: white;
+text-align: center;
+padding: 1.5rem 1rem;
+box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.2rem;
+font-size: 2rem;
+margin-bottom: 0.2rem;
 }
 
 header p {
-  font-size: 1rem;
-  color: #bdc3c7;
+font-size: 1rem;
+color: #bdc3c7;
 }
 
 /* Chat container */
-#chat-window {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  background-color: #f0f4f8;
-  min-height: 320px;
-  max-height: 380px;
-  border-bottom: 1px solid #dfe6ec;
+#chat-container {
+flex: 1;
+padding: 1rem;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 0.6rem;
+background-color: #f0f4f8;
 }
 
 /* Message bubbles */
-.msg {
-  max-width: 75%;
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
-  line-height: 1.5;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  font-size: 1rem;
-  display: flex;
-  flex-direction: column;
+.message {
+max-width: 75%;
+padding: 0.8rem 1rem;
+border-radius: 12px;
+line-height: 1.5;
+word-wrap: break-word;
+white-space: pre-wrap;
+box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+font-size: 1rem;
 }
 
-.msg-text {
-  margin: 0; /* reset spacing */
+.user {
+align-self: flex-end;
+background-color: #3498db;
+color: white;
 }
 
-.msg.user {
-  align-self: flex-end;
-  background-color: #3498db;
-  color: white;
-  border-bottom-right-radius: 6px;
-}
-
-.msg.bot {
-  align-self: flex-start;
-  background-color: #e0eaf1;
-  color: #2c3e50;
-  border-bottom-left-radius: 6px;
-}
-
-/* Image container for charts */
-#image-container {
-  padding: 1rem;
-  background: #f9fbfd;
-  text-align: center;
-}
-
-#image-container img {
-  max-width: 90%;
-  border: 2px solid #3498db;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-top: 10px;
+.bot {
+align-self: flex-start;
+background-color: #e0eaf1;
+color: #2c3e50;
 }
 
 /* Chat input form */
-form.chat-input-group {
-  display: flex;
-  padding: 1rem;
-  background: white;
-  border-top: 1px solid #dfe6ec;
-  gap: 0.5rem;
+form {
+display: flex;
+padding: 1rem;
+background: white;
+border-top: 1px solid #dfe6ec;
 }
 
 input[type="text"] {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-  outline: none;
-  transition: border 0.3s;
+flex: 1;
+padding: 0.75rem 1rem;
+border: 1px solid #ccc;
+border-radius: 8px;
+font-size: 1rem;
+outline: none;
+transition: border 0.3s;
 }
 
 input[type="text"]:focus {
-  border-color: #3498db;
+border-color: #3498db;
 }
 
 button {
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+background-color: #27ae60;
+color: white;
+border: none;
+margin-left: 0.5rem;
+padding: 0.75rem 1rem;
+border-radius: 8px;
+font-weight: 600;
+cursor: pointer;
+transition: background-color 0.2s;
 }
 
 button:hover {
-  background-color: #219150;
-}
-
-.btn-outline-secondary {
-  background-color: #f0f4f8;
-  color: #2c3e50;
-  border: 1px solid #ccc;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #e2e8ee;
+background-color: #219150;
 }
 
 /* Responsive tweaks */
 @media (max-width: 600px) {
-  header h1 {
-    font-size: 1.5rem;
-  }
-
-  .msg {
-    font-size: 0.95rem;
-  }
-
-  input[type="text"], button {
-    font-size: 0.95rem;
-  }
+header h1 {
+font-size: 1.5rem;
 }
+
+.message {
+font-size: 0.95rem;
+}
+
+input[type="text"], button {
+font-size: 0.95rem;
+}
+}
+
+Can I pair it with this?
+
