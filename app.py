@@ -17,6 +17,17 @@ Session(app)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 MODEL = "openai/gpt-oss-120b"
 
+# SYSTEM PROMPT FOR AI ROLE
+SYSTEM_PROMPT = (
+    "You are an Epidemiology Simulation Chatbot. "
+    "First, ask the user to specify which disease they want to simulate (e.g., COVID-19, influenza, measles, etc.). "
+    "Then, request all necessary epidemiological parameters in one message (such as population size, initial infected, transmission rate, recovery rate, duration of simulation, etc.). "
+    "Once the user provides the inputs, calculate the simulated disease spread and present the results using your own reasoning and intelligence. "
+    "If the user requests a graph, chart, or image, describe the data in a way that can be visualized and inform the user a chart will be generated. "
+    "Guide the user through the process step by step, ensuring you gather all needed data before running the simulation. "
+    "Always output a clean table for every simulation."
+)
+
 def get_now():
     return datetime.utcnow()
 
@@ -151,8 +162,14 @@ def reset():
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("message", "")
-    if "memory" not in session:
-        session["memory"] = []
+    # --- Ensure system prompt is always present at the start ---
+    if "memory" not in session or not session["memory"]:
+        session["memory"] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    else:
+        # If system prompt not present, add it at the start
+        if session["memory"][0].get("role") != "system":
+            session["memory"].insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+
     session["memory"].append({"role": "user", "content": user_input})
 
     try:
