@@ -1,5 +1,6 @@
 import os
 import io
+import re
 from flask import Flask, render_template, request, jsonify, session, send_file
 from flask_session import Session
 import requests
@@ -19,58 +20,101 @@ MODEL = "openai/gpt-oss-120b"
 def get_now():
     return datetime.utcnow()
 
-def extract_sir_table(simulation_text):
-    import re
+def detect_model_type(text):
+    # Returns 'SEIRV', 'SEIR', 'SIRV', 'SIR' based on table headings in text, default SIR
+    for line in text.split('\n'):
+        l = line.strip()
+        if re.match(r"Month\s+S\s+E\s+I\s+R\s+V", l): return "SEIRV"
+        if re.match(r"Month\s+S\s+E\s+I\s+R", l): return "SEIR"
+        if re.match(r"Month\s+S\s+I\s+R\s+V", l): return "SIRV"
+        if re.match(r"Month\s+S\s+I\s+R", l): return "SIR"
+    # fallback: try to detect from text
+    if "exposed" in text.lower() and "vaccinated" in text.lower(): return "SEIRV"
+    if "exposed" in text.lower(): return "SEIR"
+    if "vaccinated" in text.lower(): return "SIRV"
+    return "SIR"
+
+def extract_table(simulation_text, model_type):
+    # Returns dict of {month: [S, E, I, R, V]} (or subset), and lists for each variable
     rows = []
     table_started = False
+    variable_order = []
     for line in simulation_text.split('\n'):
         line = line.strip()
-        if re.match(r"Month\s+S\s+I\s+R", line):
+        if line.startswith("Month"):
+            headers = re.split(r"\s+", line)
+            variable_order = headers[1:]
             table_started = True
             continue
         if table_started:
             if re.match(r"^\d+\s+\d+", line):
                 cols = re.split(r"\s+", line)
-                if len(cols) >= 4:
-                    try:
-                        month = int(cols[0])
-                        s = int(cols[1].replace(" ", ""))
-                        i = int(cols[2].replace(" ", ""))
-                        r = int(cols[3].replace(" ", ""))
-                        rows.append((month, s, i, r))
-                    except Exception:
-                        continue
+                try:
+                    month = int(cols[0])
+                    values = []
+                    for idx, val in enumerate(cols[1:]):
+                        val = val.replace(" ", "")  # Remove unicode thin spaces
+                        try:
+                            values.append(int(val))
+                        except:
+                            values.append(float(val))
+                    rows.append((month, values))
+                except Exception:
+                    continue
             elif line == "" or line.lower().startswith("what the numbers"):
                 break
-    return rows
+    # Transpose to lists
+    table = {var: [] for var in variable_order}
+    months = []
+    for month, vals in rows:
+        months.append(month)
+        for i, var in enumerate(variable_order):
+            if i < len(vals):
+                table[var].append(vals[i])
+            else:
+                table[var].append(0)
+    table["Month"] = months
+    return table, variable_order
 
 def generate_chart_from_simulation(simulation_text, chart_type="line"):
-    sir_table = extract_sir_table(simulation_text)
-    if sir_table and len(sir_table) > 0:
-        months = [row[0] for row in sir_table]
-        S = [row[1] for row in sir_table]
-        I = [row[2] for row in sir_table]
-        R = [row[3] for row in sir_table]
-    else:
-        # fallback dummy data
-        months = list(range(0, 121, 12))
-        S = [1949, 1854, 1640, 1310, 876, 423, 90, 8, 0, 0, 0]
-        I = [50, 135, 311, 521, 714, 796, 714, 489, 285, 164, 95]
-        R = [0, 9, 48, 168, 409, 780, 1195, 1502, 1714, 1835, 1904]
+    model_type = detect_model_type(simulation_text)
+    table, variable_order = extract_table(simulation_text, model_type)
+    months = table.get("Month", list(range(0, 121, 12)))
+
+    # Default colors for all compartments
+    colors = {
+        "S": "#1976d2",    # Susceptible: blue
+        "E": "#ffb300",    # Exposed: yellow/orange
+        "I": "#d32f2f",    # Infected: red
+        "R": "#388e3c",    # Removed/Recovered: green
+        "V": "#7b1fa2",    # Vaccinated: purple
+    }
+    labels = {
+        "S": "Susceptible",
+        "E": "Exposed",
+        "I": "Infected",
+        "R": "Removed",
+        "V": "Vaccinated",
+    }
 
     fig, ax = plt.subplots(figsize=(8,5))
-    if chart_type == "bar":
-        width = 3 if len(months) > 10 else 0.5
-        ax.bar(months, S, width=width, color="#1976d2", alpha=0.6, label="Susceptible")
-        ax.bar(months, I, width=width, color="#d32f2f", alpha=0.6, label="Infected", bottom=S)
-        ax.bar(months, R, width=width, color="#388e3c", alpha=0.6, label="Removed", bottom=[s+i for s, i in zip(S, I)])
+    if chart_type == "bar" and len(variable_order) <= 3:
+        # For SIR/SIRV, stacked bar makes sense; for SEIR/SEIRV, use lines for clarity
+        bottoms = [0]*len(months)
+        for var in variable_order:
+            if var == "Month": continue
+            ax.bar(months, table.get(var, [0]*len(months)), 
+                   bottom=bottoms, color=colors.get(var, None), alpha=0.6, label=labels.get(var, var))
+            bottoms = [b + v for b, v in zip(bottoms, table.get(var, [0]*len(months)))]
     else:
-        ax.plot(months, S, 'b-', marker='o', label="Susceptible")
-        ax.plot(months, I, 'r-', marker='o', label="Infected")
-        ax.plot(months, R, 'g-', marker='o', label="Removed")
+        # Always plot each compartment as a line
+        for var in variable_order:
+            if var == "Month": continue
+            ax.plot(months, table.get(var, [0]*len(months)), marker='o', label=labels.get(var, var), color=colors.get(var, None))
+
     ax.set_xlabel("Month")
     ax.set_ylabel("Number of People")
-    ax.set_title("HIV/AIDS SIR Simulation")
+    ax.set_title(f"{model_type} Simulation")
     ax.legend()
     plt.tight_layout()
     img_bytes = io.BytesIO()
@@ -120,7 +164,6 @@ def chat():
 
     session["memory"].append({"role": "assistant", "content": reply})
 
-    # Visualization detection logic
     wants_visualization = any(word in user_input.lower() for word in [
         "show", "plot", "graph", "chart", "visualize", "draw"
     ])
@@ -139,7 +182,6 @@ def chat():
 
 @app.route("/image")
 def image():
-    # For direct image download/view (not used by default, but can be useful)
     simulation_text = request.args.get("data", "")
     chart_type = request.args.get("type", "line")
     image_bytes = generate_chart_from_simulation(simulation_text, chart_type=chart_type)
