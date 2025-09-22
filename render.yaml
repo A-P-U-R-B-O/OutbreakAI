@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: epidemiology-simulator
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app.py"
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false  # Set this in Render dashboard for security
+    plan: starter
+    autoDeploy: true
+    branch: main
+    repo: https://github.com/A-P-U-R-B-O/ThinkSafe1
+    healthCheckPath: /
